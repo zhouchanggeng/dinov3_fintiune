@@ -69,21 +69,21 @@ def evaluate_model(
     cm = confusion_matrix(all_labels, all_preds)
 
     # 分类报告
-    class_names = ["非微笑", "微笑"]
+    class_names = ["Non-Smile", "Smile"]
     report = classification_report(
         all_labels, all_preds, target_names=class_names
     )
 
     print("\n" + "=" * 50)
-    print("测试集评估结果")
+    print("Test Set Evaluation Results")
     print("=" * 50)
-    print(f"  准确率 (Accuracy): {metrics['accuracy']:.4f}")
-    print(f"  F1 分数:           {metrics['f1']:.4f}")
-    print(f"  精确率 (Precision): {metrics['precision']:.4f}")
-    print(f"  召回率 (Recall):    {metrics['recall']:.4f}")
-    print(f"  AUC:               {metrics['auc']:.4f}")
-    print(f"\n混淆矩阵:\n{cm}")
-    print(f"\n分类报告:\n{report}")
+    print(f"  Accuracy:  {metrics['accuracy']:.4f}")
+    print(f"  F1 Score:  {metrics['f1']:.4f}")
+    print(f"  Precision: {metrics['precision']:.4f}")
+    print(f"  Recall:    {metrics['recall']:.4f}")
+    print(f"  AUC:       {metrics['auc']:.4f}")
+    print(f"\nConfusion Matrix:\n{cm}")
+    print(f"\nClassification Report:\n{report}")
 
     # ── 可视化 ──
     os.makedirs(output_dir, exist_ok=True)
@@ -95,9 +95,9 @@ def evaluate_model(
     ax.set_yticks([0, 1])
     ax.set_xticklabels(class_names)
     ax.set_yticklabels(class_names)
-    ax.set_xlabel("预测标签")
-    ax.set_ylabel("真实标签")
-    ax.set_title("混淆矩阵")
+    ax.set_xlabel("Predicted Label")
+    ax.set_ylabel("True Label")
+    ax.set_title("Confusion Matrix")
     for i in range(2):
         for j in range(2):
             ax.text(j, i, str(cm[i, j]), ha="center", va="center", fontsize=16)
@@ -109,12 +109,12 @@ def evaluate_model(
     # ROC 曲线
     fig, ax = plt.subplots(figsize=(6, 5))
     RocCurveDisplay.from_predictions(
-        all_labels, all_probs, name="微笑分类", ax=ax
+        all_labels, all_probs, name="Smile Classifier", ax=ax
     )
-    ax.set_title("ROC 曲线")
+    ax.set_title("ROC Curve")
     fig.tight_layout()
     fig.savefig(os.path.join(output_dir, "roc_curve.png"), dpi=150)
     plt.close(fig)
 
-    print(f"\n可视化已保存至 {output_dir}/")
+    print(f"\nVisualization saved to {output_dir}/")
     return metrics
