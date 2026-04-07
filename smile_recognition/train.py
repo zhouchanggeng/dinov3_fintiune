@@ -9,6 +9,7 @@ import torch.nn as nn
 from torch.cuda.amp import GradScaler, autocast
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, LinearLR, SequentialLR
 
+import swanlab
 from config import Config
 from dataset import build_dataloaders
 from model import build_model, build_optimizer
@@ -166,6 +167,15 @@ def train(cfg: Config):
     best_val_acc = 0.0
     best_model_path = os.path.join(cfg.output_dir, "best_model.pth")
 
+    # SwanLab
+    swanlab.init(
+        project="smile-recognition",
+        experiment_name=f"{cfg.finetune_mode}-{time.strftime('%m%d_%H%M')}",
+        config=vars(cfg),
+        logdir=os.path.join(cfg.output_dir, "swanlog"),
+        mode="local",
+    )
+
     print(f"\n[训练] 开始训练 — {cfg.finetune_mode} 模式, {cfg.epochs} epochs")
     print("=" * 60)
 
@@ -192,6 +202,17 @@ def train(cfg: Config):
             f"{elapsed:.1f}s"
         )
 
+        # SwanLab 记录
+        swanlab.log({
+            "train/loss": train_metrics["loss"],
+            "train/accuracy": train_metrics["accuracy"],
+            "val/loss": val_metrics["loss"],
+            "val/accuracy": val_metrics["accuracy"],
+            "val/f1": val_metrics["f1"],
+            "val/auc": val_metrics["auc"],
+            "lr": optimizer.param_groups[0]["lr"],
+        }, step=epoch)
+
         # 保存最优模型
         if val_metrics["accuracy"] > best_val_acc:
             best_val_acc = val_metrics["accuracy"]
@@ -215,6 +236,7 @@ def train(cfg: Config):
     with open(history_path, "w") as f:
         json.dump(history, f, indent=2)
 
+    swanlab.finish()
     return model, test_metrics
 
 

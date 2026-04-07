@@ -177,10 +177,56 @@ def split_dataset(cfg: Config):
         print(f"  {split_name}: {len(s_paths)} 样本 -> {out_file}")
 
 
+def import_rafdb(rafdb_root: str, aligned_dir: str, align_size: int = 112):
+    """
+    导入 RAF-DB 数据集到 aligned_dir。
+    RAF-DB 人脸已校正，文件夹 4 = 微笑(1)，其余 = 非微笑(0)。
+    目录结构: rafdb_root/DATASET/{train,test}/{1..7}/xxx_aligned.jpg
+    """
+    import shutil
+
+    for label in [0, 1]:
+        os.makedirs(os.path.join(aligned_dir, str(label)), exist_ok=True)
+
+    count = 0
+    for split in ["train", "test"]:
+        split_dir = os.path.join(rafdb_root, "DATASET", split)
+        if not os.path.isdir(split_dir):
+            print(f"  ⚠ 目录不存在: {split_dir}")
+            continue
+        for folder in sorted(os.listdir(split_dir)):
+            folder_path = os.path.join(split_dir, folder)
+            if not os.path.isdir(folder_path):
+                continue
+            label = 1 if folder == "4" else 0
+            for fname in sorted(os.listdir(folder_path)):
+                if not fname.lower().endswith((".jpg", ".jpeg", ".png")):
+                    continue
+                src = os.path.join(folder_path, fname)
+                # 加前缀避免文件名冲突
+                dst_name = f"rafdb_{split}_{folder}_{fname}"
+                dst = os.path.join(aligned_dir, str(label), dst_name)
+                img = cv2.imread(src)
+                if img is None:
+                    continue
+                # resize 到统一尺寸
+                img = cv2.resize(img, (align_size, align_size))
+                cv2.imwrite(dst, img)
+                count += 1
+
+    print(f"RAF-DB 导入完成: {count} 张图片")
+
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="GENKI-4K 数据准备与人脸对齐")
+    parser = argparse.ArgumentParser(description="数据准备与人脸对齐")
     parser.add_argument("--data_root", type=str, default=None)
     parser.add_argument("--aligned_dir", type=str, default=None)
+    parser.add_argument("--rafdb_root", type=str, default="./data/RAF-DB",
+                        help="RAF-DB 数据集根目录")
+    parser.add_argument("--skip_genki", action="store_true",
+                        help="跳过 GENKI-4K 对齐 (仅导入 RAF-DB)")
+    parser.add_argument("--skip_rafdb", action="store_true",
+                        help="跳过 RAF-DB 导入")
     args = parser.parse_args()
 
     cfg = Config()
@@ -190,12 +236,19 @@ if __name__ == "__main__":
         cfg.aligned_dir = args.aligned_dir
     cfg.__post_init__()
 
-    print("=" * 50)
-    print("Step 1: 人脸检测与仿射对齐")
-    print("=" * 50)
-    align_faces(cfg)
+    if not args.skip_genki:
+        print("=" * 50)
+        print("Step 1: GENKI-4K 人脸检测与仿射对齐")
+        print("=" * 50)
+        align_faces(cfg)
+
+    if not args.skip_rafdb:
+        print("\n" + "=" * 50)
+        print("Step 2: 导入 RAF-DB 数据集")
+        print("=" * 50)
+        import_rafdb(args.rafdb_root, cfg.aligned_dir, cfg.face_align_size)
 
     print("\n" + "=" * 50)
-    print("Step 2: 数据集划分 (train/val/test)")
+    print("Step 3: 数据集划分 (train/val/test)")
     print("=" * 50)
     split_dataset(cfg)
