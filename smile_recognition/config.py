@@ -11,6 +11,7 @@ from typing import Optional
 class Config:
     # ── 路径 ──
     data_root: str = "./data/kaggle-genki4k"      # GENKI-4K 数据集根目录 (smile/ non_smile/)
+    rafdb_root: str = "./data/RAF-DB"             # RAF-DB 数据集根目录
     aligned_dir: str = "./data/GENKI-4K_aligned"  # 对齐后人脸存储目录
     output_dir: str = "./outputs"                  # 模型/日志输出目录
 
